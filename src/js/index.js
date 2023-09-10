@@ -1,7 +1,4 @@
-import axios from 'axios';
-axios.defaults.headers.common['x-api-key'] =
-  'live_Ry36IJlc4KjhBd33SOpJhy4XhEGmJ21FETlCDxEyVDNjYiM4Y8tiJB4naNZg7nbx';
-
+import { fetchBreeds, fetchCatByBreed } from './cat-api';
 import Notiflix from 'notiflix';
 import SlimSelect from 'slim-select';
 import 'slim-select/dist/slimselect.css';
@@ -12,61 +9,26 @@ const errorEl = document.querySelector('.error');
 const catInfoEl = document.querySelector('.cat-info');
 
 errorEl.classList.add('visually-hidden');
+breedSelect.classList.add('hidden-select');
 
-const fetchBreeds = () => {
-  return axios
-    .get('https://api.thecatapi.com/v1/breeds')
-    .then(r => {
-      breedSelect.classList.add('hidden-select');
-      console.log(r);
-      if (r.status === 200) {
-        loaderEl.classList.add('visually-hidden');
-        breedSelect.classList.remove('hidden-select');
-        renderListOption(r.data, breedSelect);
-        new SlimSelect({
-          select: breedSelect,
-        });
-      }
-    })
-    .catch(error => {
-      Notiflix.Notify.failure(
-        'Oops! Something went wrong! Try reloading the page!'
-      );
-      errorEl.classList.remove('visually-hidden');
+fetchBreeds()
+  .then(r => {
+    if (r.status === 200) {
       loaderEl.classList.add('visually-hidden');
-    });
-};
+      breedSelect.classList.remove('hidden-select');
+      renderListOption(r.data, breedSelect);
+      new SlimSelect({
+        select: breedSelect,
+      });
+    }
+  })
+  .catch(error => {
+    Notiflix.Notify.failure(
+      'Oops! Something went wrong! Try reloading the page!'
+    );
 
-fetchBreeds();
-
-const fetchCatByBreed = breedId => {
-  const optionEl = document.querySelector('option');
-  // console.log(optionEl.value);
-  breedId = optionEl.value;
-  return axios
-    .get(`https://api.thecatapi.com/v1/images/search?breed_ids=${breedId}`)
-    .then(r => {
-      console.log(r.data);
-      loaderEl.classList.remove('visually-hidden');
-      catInfoEl.classList.add('visually-hidden');
-
-      setTimeout(() => {
-        if (r.status === 200) {
-          loaderEl.classList.add('visually-hidden');
-          catInfoEl.classList.remove('visually-hidden');
-          renderListDataCat(r.data, catInfoEl);
-        }
-      }, 1000);
-    })
-    .catch(error => {
-      Notiflix.Notify.failure(
-        'Oops! Something went wrong! Try reloading the page!'
-      );
-      // errorEl.classList.remove('visually-hidden');
-      loaderEl.classList.add('visually-hidden');
-    });
-};
-breedSelect.addEventListener('change', fetchCatByBreed);
+    loaderEl.classList.add('visually-hidden');
+  });
 
 const renderListOption = (arr, container) => {
   const markup = arr
@@ -90,3 +52,26 @@ const renderListDataCat = (arr, container) => {
     .join('');
   container.innerHTML = markup;
 };
+
+breedSelect.addEventListener('change', e => {
+  // console.dir(e.target.value);
+  const breedId = e.target.value;
+  loaderEl.classList.remove('visually-hidden');
+
+  fetchCatByBreed(breedId)
+    .then(r => {
+      // console.log(r);
+      setTimeout(() => {
+        if (r.status === 200) {
+          loaderEl.classList.add('visually-hidden');
+          catInfoEl.classList.remove('visually-hidden');
+          renderListDataCat(r.data, catInfoEl);
+        }
+      }, 300);
+    })
+    .catch(error =>
+      Notiflix.Notify.failure(
+        'Oops! Something went wrong! Try reloading the page!'
+      )
+    );
+});
